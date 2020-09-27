@@ -1,15 +1,22 @@
+import firebase, { firestore } from 'firebase/app';
+import "firebase/firestore";
 import React from 'react';
 import { ColorResult, GithubPicker } from 'react-color';
 import './App.css';
 import { FirebaseContext } from './firebase';
 
+const Firestore = firebase.firestore
+
 const PIXEL_SIZE = 10;
 
+const TIME_BETWEEN_PLACEMENTS = 0.5*1000 // 10*60*1000 // in milliseconds!
+
 interface RPlacePixel {
-  user: string,
+  uid: string,
   colour: string,
   x: number,
-  y: number
+  y: number,
+  placementTime: Date
 }
 
 const COLOUR_PALETTE = [
@@ -34,7 +41,7 @@ const COLOUR_PALETTE = [
 type RPlaceImage = Map<string, RPlacePixel>
 
 interface UserData {
-  lastPlacementTimestamp: Date
+  lastPlacementTime: firestore.Timestamp
 }
 
 const getMousePosition = (canvas: HTMLCanvasElement, event: MouseEvent) => {
@@ -44,13 +51,33 @@ const getMousePosition = (canvas: HTMLCanvasElement, event: MouseEvent) => {
   return [x, y]
 }
 
+interface TimeLeft {
+  days: number,
+  hours: number,
+  minutes: number,
+  seconds: number
+}
+
+const getTimeLeft = (startTime: number): TimeLeft | "done" => {
+  const timeLeft = (startTime + TIME_BETWEEN_PLACEMENTS) - +new Date();
+  if (timeLeft < 0) return "done"
+  return {
+    days: Math.floor(timeLeft / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((timeLeft / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((timeLeft / 1000 / 60) % 60),
+    seconds: Math.floor((timeLeft / 1000) % 60)
+  }
+}
+
 function App() {
   const [userId, setUserId] = React.useState<string | null>(null)
   const [imageData, setImageData] = React.useState<RPlaceImage | null>(null)
   const [colour, setColour] = React.useState(COLOUR_PALETTE[5])
   const canvas = React.useRef<HTMLCanvasElement>(null)
   const firebase = React.useContext(FirebaseContext)
-  const [userData, setUserData] = React.useState<UserData | null>()
+  const [placing, setPlacing] = React.useState(false)
+  const [userData, setUserData] = React.useState<UserData | "empty" | "loading">("loading")
+  const [timeLeft, setTimeLeft] = React.useState<TimeLeft | "done" | "waiting-for-user-data-load">("waiting-for-user-data-load");
 
   React.useEffect(() => {
     const unsubscribe = firebase.auth().onAuthStateChanged(user => setUserId(user?.uid ?? null));
@@ -60,10 +87,13 @@ function App() {
 
   React.useEffect(() => {
     if (userId) {
-      const unsubscribe = firebase.firestore().collection("users").doc(userId).onSnapshot(snapshot => setUserData(snapshot.data() as UserData))
+      const unsubscribe = firebase.firestore().collection("users").doc(userId).onSnapshot(snapshot => {
+        if (snapshot.exists) setUserData(snapshot.data() as UserData)
+        else setUserData("empty")
+      })
       return unsubscribe
     } else {
-      setUserData(null)
+      setUserData("loading")
     }
   }, [userId, firebase])
 
@@ -90,26 +120,55 @@ function App() {
     })
   }, [imageData])
 
+
+  React.useEffect(() => {
+    if (userData === "loading") setTimeLeft("waiting-for-user-data-load")
+    else if (userData === "empty") setTimeLeft("done")
+    else {
+      const timer = setInterval(() => setTimeLeft(getTimeLeft(userData.lastPlacementTime.toMillis())), 1000);
+      return () => clearInterval(timer)
+    }
+  }, [userData]);
+
   const addPixel = React.useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
-    if (!canvas.current) return
+    if (placing) return
+    setPlacing(true)
+
+    if (!canvas.current || !userId) return
+    if (userData === "loading") return
+    if (userData !== "empty" && userData.lastPlacementTime && new Date().getTime() - TIME_BETWEEN_PLACEMENTS <= userData.lastPlacementTime.toMillis()) return
+
     const [x, y] = getMousePosition(canvas.current, event.nativeEvent).map(a => Math.floor(a / PIXEL_SIZE))
-    firebase.firestore().collection("pixels").doc(`${x}-${y}`).set({
+    const batch = firebase.firestore().batch()
+    batch.set(firebase.firestore().collection("pixels").doc(`${x}-${y}`), {
       x, y,
       colour,
-      user: userId
+      uid: userId,
+      placementTime: Firestore.FieldValue.serverTimestamp()
     })
-  }, [colour, firebase, userId])
+    batch.set(firebase.firestore().collection("users").doc(userId), {
+      lastPlacementTime: Firestore.FieldValue.serverTimestamp()
+    })
+    batch.commit().then(
+      () => setPlacing(false)
+    )
+  }, [colour, firebase, userId, userData])
 
   const handlerColourChangeComplete = React.useCallback((colour: ColorResult, _event: React.ChangeEvent<HTMLInputElement>) => {
     setColour(colour.hex)
     console.log(colour)
   }, [])
 
+  console.log(timeLeft)
+
   return (
     <>
       <h1>r/Place Clone</h1><GithubPicker color={colour} onChangeComplete={handlerColourChangeComplete} triangle="hide" colors={COLOUR_PALETTE} />
       {
-        imageData ? <canvas width={1000} height={1000} onMouseDown={addPixel} ref={canvas} style={{border: "1px solid black"}} /> : <div style={{
+
+      }
+      {
+        imageData ? <canvas width={1000} height={1000} onMouseDown={addPixel} ref={canvas} style={{ border: "1px solid black" }} /> : <div style={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
