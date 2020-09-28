@@ -1,38 +1,119 @@
-.App {
-  text-align: center;
+.container {
+  height: 100vh;
+  width: 100vw;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.corner-box {
+  position: absolute;
+  background-color: white;
+  padding: 5px;
+  z-index: 100;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: rgba(0, 0, 0, 0.15) 0px 3px 12px;
+  border-radius: 4px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.controls-box {
+  top: 5px;
+  right: 5px;
+  line-height: 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.countdown-box {
+  right: 5px;
+  bottom: 5px;
 }
 
-.App-link {
-  color: #61dafb;
+.title-box {
+  position: absolute;
+  top: 5px;
+  left: 5px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.colour-picker-box {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  z-index: 100;
+}
+
+.box-text {
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+.board {
+  /* Outline instead of border so that it is not counted as part of the canvas (for pixel placement calculations). */
+  outline: black 10px solid;
+}
+
+.portfolio-link {
+  text-decoration: none;
+}
+
+.portfolio-link:hover {
+  text-decoration: underline;
+}
+
+.controls-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.controls-button:before,
+.controls-button:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.controls-minus-button {
+  margin-top: 5px;
+}
+
+.controls-minus-button::before {
+  background: rgba(0, 0, 0, 1);
+  margin: auto 8px;
+  height: 2px;
+  /* box-shadow: 0px 1px 1px #ffffff9e; */
+}
+
+.controls-button.controls-plus-button:before,
+.controls-button.controls-plus-button:after {
+  background: rgba(0, 0, 0, 1);
+  /* box-shadow: 1px 1px 1px #ffffff9e; */
+}
+
+.controls-button.controls-plus-button:before {
+  width: 2px;
+  margin: 8px auto;
+}
+
+.controls-button.controls-plus-button:after {
+  margin: auto 8px;
+  height: 2px;
+  box-shadow: none;
+}
+
+.byline {
+  display: inline-block;
+}
+
+.gh-logo-link {
+  margin-left: 5px;
+}
+
+.gh-logo-link > img {
+  vertical-align: middle;
+  height: 1em;
 }
