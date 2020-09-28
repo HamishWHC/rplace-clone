@@ -92,8 +92,8 @@ function App() {
   const [mapInteractionValues, setMapInteractionValues] = React.useState({
     scale: 1,
     translation: {
-      x: -BOARD_SIZE.x * PIXEL_SIZE / 2,
-      y: -BOARD_SIZE.y * PIXEL_SIZE / 2
+      x: -BOARD_SIZE.x * PIXEL_SIZE / 2 + width / 2,
+      y: -BOARD_SIZE.y * PIXEL_SIZE / 2 + height / 2
     }
   })
 
@@ -156,7 +156,7 @@ function App() {
   }, [userData]);
 
   const addPixel = React.useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
-    if (!canvas.current || !userId || userData === "loading") return
+    if (!canvas.current || !userId || userData === "loading" || placingMutex.isLocked()) return
     console.log(userData)
     if (userData !== "empty") {
       // For an unknown reason, userData.lastPlacementTime can be null (I think its during the update to be a server timestamp on firebase's end), so we check for that,
@@ -187,7 +187,7 @@ function App() {
       })
       batch.commit().then(release).catch(err => { console.error(err); release() })
     })
-  }, [colour, firebase, userId, userData])
+  }, [colour, firebase, userId, userData, mapInteractionValues.scale])
 
   const handleColourChangeComplete = React.useCallback((colour: ColorResult, _event: React.ChangeEvent<HTMLInputElement>) => {
     setColour(colour.hex)
@@ -199,7 +199,7 @@ function App() {
       <h1 className="box-text">r/Place Clone</h1>
       <h5 className="box-text byline">by <a className="portfolio-link" href="https://hamishwhc.com">HamishWHC</a></h5>
       <a className="gh-logo-link" href="https://github.com/HamishWHC/rplace-clone/">
-        <img src={githubLogo} />
+        <img src={githubLogo} alt="GitHub logo, linking to the r/Place Clone repository." />
       </a>
     </div>
     <div className="colour-picker-box">
