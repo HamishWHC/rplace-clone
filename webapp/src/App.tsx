@@ -16,7 +16,7 @@ const PIXEL_SIZE = 10;
 
 const BOARD_SIZE = { x: 1000, y: 1000 };
 
-const TIME_BETWEEN_PLACEMENTS = 0.5 * 1000 // 10*60*1000 // in milliseconds!
+const TIME_BETWEEN_PLACEMENTS = 1 * 1000 // 10*60*1000 // in milliseconds!
 
 interface RPlacePixel {
   uid: string,
