@@ -12,6 +12,11 @@ service cloud.firestore {
     function isNow(time) {
       return request.time == time;
     }
+    
+    function isValidUserData() {
+      return request.resource.data.keys() == ["lastPlacementTime"]
+        && request.resource.data.lastPlacementTime is timestamp;
+    }
 
     function userWaitedDuration() {
       return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -20,16 +25,27 @@ service cloud.firestore {
 
     match /users/{user} {
       allow read: if isAuthed() && isUser(user);
-      allow write: if isAuthed() && isUser(user) && isNow(request.resource.data.lastPlacementTime);
+      allow create, update: if isAuthed() && isUser(user) && isNow(request.resource.data.lastPlacementTime) && isValidUserData();
     }
 
     function userWillBeUpdated() {
       return isNow(getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.lastPlacementTime)
     }
 
+    function isValidPixel() {
+      return request.resource.data.keys().hasOnly(['x', 'y', "colour", 'uid', "placementTime"])
+        && request.resource.data.keys().hasAll(['x', 'y', "colour", 'uid', "placementTime"])
+        && request.resource.data.x is int
+        && request.resource.data.y is int
+        && request.resource.data.colour is string
+        && request.resource.data.colours.matches("^#[0-9][A-F]$")
+        && request.resource.data.placementTime is timestamp;
+    }
+
     match /pixels/{pixel} {
       allow read: if true;
       allow create, update: if isAuthed()
+        && isValidPixel()
         && isUser(request.resource.data.uid)
         && isNow(request.resource.data.placementTime)
         && userWaitedDuration()
