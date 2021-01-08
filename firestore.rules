@@ -38,7 +38,7 @@ service cloud.firestore {
         && request.resource.data.x is int
         && request.resource.data.y is int
         && request.resource.data.colour is string
-        && request.resource.data.colours.matches("^#[0-9][A-F]$")
+      && request.resource.data.colour.matches("^#(?:[0-9][A-F]){6}$")
         && request.resource.data.placementTime is timestamp;
     }
 
